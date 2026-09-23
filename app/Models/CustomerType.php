@@ -6,5 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class CustomerType extends Model
 {
-    //
+    protected $fillable = ['code', 'name'];
+    public function customers() { return $this->hasMany(Customer::class); }
 }
