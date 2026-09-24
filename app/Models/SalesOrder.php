@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 
 class SalesOrder extends Model
 {
+    use HasFactory;
     protected $fillable = ['customer_id', 'order_number', 'order_date', 'requested_delivery_date', 'confirmed_delivery_date', 'observation'];
     protected $casts = ['order_date' => 'date', 'requested_delivery_date' => 'date', 'confirmed_delivery_date' => 'date'];
 

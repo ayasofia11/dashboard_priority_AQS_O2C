@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 
 class SalesOrderItem extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'sales_order_id', 'product_id', 'line_number', 'unit_price', 'tva_rate',
         'ordered_quantity', 'delivered_quantity', 'initial_delivered_quantity', 'status', 'observation',

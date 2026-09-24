@@ -14,7 +14,7 @@ return new class extends Migration
         $table->foreignId('product_id')->constrained();
         $table->integer('line_number');
         $table->decimal('unit_price', 15, 2);
-        $table->decimal('vat_rate', 5, 4)->default(0.19);
+        $table->decimal('tva_rate', 5, 4)->default(0.19);
         $table->decimal('ordered_quantity', 15, 3);
         $table->decimal('delivered_quantity', 15, 3)->default(0);
         $table->decimal('initial_delivered_quantity', 15, 3)->default(0);

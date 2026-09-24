@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Customer extends Model
 {
+    use HasFactory;
     protected $fillable = ['customer_type_id', 'customer_code', 'name', 'distance_km', 'is_active'];
     protected $casts = ['is_active' => 'boolean'];
 

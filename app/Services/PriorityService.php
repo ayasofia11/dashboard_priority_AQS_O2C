@@ -8,8 +8,30 @@ use Illuminate\Support\Collection;
 
 class PriorityService
 {
-    public function evaluate(SalesOrder $order): OrderPriorityEvaluation
+     // Les 3 populations calculées une seule fois, réutilisées pour toutes les commandes.
+    private ?Collection $stockPop = null;
+    private ?Collection $soldePop = null;
+    private ?Collection $distancePop = null;
+
+    // Appelée UNE FOIS avant la boucle d'import, pas à chaque commande.
+    public function preparePopulations(): void
     {
+        $this->stockPop = SalesOrder::where('status', '!=', 'DELIVERED')->with('items.product')->get()
+            ->map(fn ($o) => $o->items->sum(fn ($i) => $i->product->latestStock()?->available_qty ?? 0));
+
+        $this->soldePop = Customer::all()->map(fn ($c) => $c->latestSolde()?->outstanding_solde ?? 0);
+
+        $this->distancePop = Customer::whereHas('customerType', fn ($q) => $q->where('code', '!=', 'IMPORT_EXPORT'))
+            ->get()->pluck('distance_km')->filter(fn ($d) => ! is_null($d));
+    }
+
+    public function evaluate(SalesOrder $order): ?OrderPriorityEvaluation
+    {
+
+        if ($order->status === 'DELIVERED') {return null;}
+
+        if (is_null($this->stockPop)) $this->preparePopulations();
+
         $order->loadMissing('items.product.productType', 'customer.customerType');
 
         $model = PriorityModel::where('is_active', true)->firstOrFail();
@@ -86,8 +108,7 @@ class PriorityService
     private function scoreStockLevel(SalesOrder $order, $factor): array
     {
         $raw = $order->items->sum(fn ($item) => $item->product->latestStock()?->available_qty ?? 0);
-        $pop = $this->stockPopulation();
-        $score = $this->minMaxNormalize($raw, $pop->min(), $pop->max());
+        $score = $this->minMaxNormalize($raw, $this->stockPop->min(), $this->stockPop->max());
 
         return $this->result('stock_level', $raw, $score, $factor->weight,
             sprintf('Stock disponible total pour cette commande : %.1f.', $raw));
@@ -108,8 +129,7 @@ class PriorityService
     private function scoreCustomerSolde(Customer $customer, $factor): array
     {
         $raw = $customer->latestSolde()?->outstanding_solde ?? 0;
-        $pop = $this->soldePopulation();
-        $score = $this->minMaxNormalize($raw, $pop->min(), $pop->max());
+        $score = $this->minMaxNormalize($raw, $this->soldePop->min(), $this->soldePop->max());
 
         return $this->result('customer_solde', $raw, $score, $factor->weight,
             sprintf('Solde client : %.0f DZD (le plus élevé est prioritaire).', $raw));
@@ -123,8 +143,7 @@ class PriorityService
         }
 
         $distance = $customer->distance_km;
-        $pop = $this->distancePopulation();
-        $score = is_null($distance) ? 50 : $this->minMaxNormalize($distance, $pop->min(), $pop->max());
+        $score = is_null($distance) ? 50 : $this->minMaxNormalize($distance, $this->distancePop->min(), $this->distancePop->max());
 
         return $this->result('customer_type', $distance, $score, $factor->weight,
             is_null($distance) ? 'Distance inconnue, score neutre.' : sprintf('Client local à %.0f km.', $distance));
