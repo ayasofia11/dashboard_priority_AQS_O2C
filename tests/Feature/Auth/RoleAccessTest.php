@@ -69,6 +69,13 @@ class RoleAccessTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_reader_cannot_post_customer_import(): void
+{
+    $this->actingAs($this->userWithRole(Role::Reader))
+        ->post('/imports/customers')
+        ->assertForbidden();
+}
+
     public function test_planner_can_open_import_form(): void
     {
         $this->actingAs($this->userWithRole(Role::Planner))

@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Services;
+namespace Tests\Feature\Services;
 
 use App\Models\{Customer, CustomerType, Product, ProductType, SalesOrder, SalesOrderItem, StockSnapshot, CustomerSoldeSnapshot};
 use App\Services\PriorityService;
