@@ -8,8 +8,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\RawArrayImport;
+use App\Services\Imports\AbstractImportService;
 
-class CustomerImportService
+class CustomerImportService extends AbstractImportService
 {
     private const COLUMN_MAP = [
         'customer_code' => 'Réf client',
@@ -83,9 +84,11 @@ class CustomerImportService
     $name = trim((string) ($this->col($data, 'name') ?? ''));
     $typeLabel = trim((string) ($this->col($data, 'type') ?? ''));
 
-    if (empty($customerCode) || empty($name) || empty($typeLabel)) {
-        throw new \Exception('Colonne obligatoire manquante (Réf client, Client, ou Type).');
-    }
+    $this->checkRequired([
+            'Réf client' => $customerCode,
+            'Client'     => $name,
+            'Type'       => $typeLabel,
+        ]);
 
     $distance = $this->col($data, 'distance_km');
     if (! is_null($distance) && (! is_numeric($distance) || $distance < 0)) {
