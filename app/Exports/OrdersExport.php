@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\SalesOrder;
 use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\{FromQuery, WithHeadings, WithMapping};
 
 class OrdersExport implements FromQuery, WithHeadings, WithMapping
@@ -12,7 +13,7 @@ class OrdersExport implements FromQuery, WithHeadings, WithMapping
 
     // Réutilise EXACTEMENT la même logique de filtres que SalesOrderController::index(),
     // pour que l'export corresponde toujours à ce que l'utilisateur voit à l'écran.
-    public function query()
+    public function query(): Builder
     {
         return SalesOrder::query()
             ->join('order_priority_evaluations as latest_eval', function ($join) {
