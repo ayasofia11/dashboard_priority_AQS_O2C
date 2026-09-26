@@ -45,6 +45,10 @@ class SalesOrderController extends Controller
             ->when($request->filled('import_batch_id'), fn ($q) =>
                 $q->where('sales_orders.last_import_batch_id', $request->import_batch_id))
 
+            ->when($request->boolean('stock_alert'), fn ($q) =>
+                $q->where('latest_eval.priority_level', 'bloquee')
+                    ->where('latest_eval.reason', 'like', '%Stock%'))
+
             ->when($request->filled('date_from'), fn ($q) =>
                 $q->whereDate('sales_orders.order_date', '>=', $request->date_from))
             ->when($request->filled('date_to'), fn ($q) =>

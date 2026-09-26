@@ -21,9 +21,8 @@
         Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
         // Tous les rôles voient le dashboard.
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
 
-        // Provisoire : sera remplacé par ton OrderImportController.
         // Tout ce qui touche à l'import est regroupé sous le même Gate.
     Route::middleware('can:import-orders')->group(function () {
         Route::get('/imports/create', fn () => 'Formulaire d’import (à venir)')->name('imports.create');
