@@ -11,6 +11,7 @@ return new class extends Migration
     Schema::create('sales_orders', function (Blueprint $table) {
         $table->id();
         $table->foreignId('customer_id')->constrained();
+        $table->foreignId('last_import_batch_id')->nullable()->constrained('import_batches');
         $table->string('order_number', 30)->unique();
         $table->date('order_date');
         $table->date('requested_delivery_date')->nullable();

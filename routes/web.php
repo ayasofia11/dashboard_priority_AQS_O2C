@@ -3,6 +3,7 @@
     use App\Http\Controllers\Auth\LoginController;
     use App\Http\Controllers\DashboardController;
     use App\Http\Controllers\ImportController;
+    use App\Http\Controllers\ExportController;
     use Illuminate\Support\Facades\Route;
 
     Route::redirect('/', '/dashboard');
@@ -29,10 +30,10 @@
         Route::post('/imports/customers', [ImportController::class, 'customers'])->name('imports.customers');
         Route::post('/imports/products', [ImportController::class, 'products'])->name('imports.products');
         Route::post('/imports/orders', [ImportController::class, 'orders'])->name('imports.orders');
-    });
+        Route::post('/evaluations/{evaluation}/decision', [PriorityDecisionController::class, 'store'])->name('evaluations.decision');
+        });
 
-        // Provisoire : sera remplacé par l'export.
-        Route::get('/orders/export', fn () => 'Export (à venir)')
+        Route::get('/orders/export', [ExportController::class, 'export'])
             ->middleware('can:export-orders')
             ->name('orders.export');
 
