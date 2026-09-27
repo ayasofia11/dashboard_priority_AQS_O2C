@@ -7,6 +7,7 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\PriorityDecisionController;
 use App\Http\Controllers\PriorityConfigController;
+use App\Http\Controllers\ImportHistoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -36,6 +37,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/imports/products', [ImportController::class, 'products'])->name('imports.products');
         Route::post('/imports/orders', [ImportController::class, 'orders'])->name('imports.orders');
         Route::post('/evaluations/{evaluation}/decision', [PriorityDecisionController::class, 'store'])->name('evaluations.decision');
+        Route::get('/imports', [ImportHistoryController::class, 'index'])->name('imports.index');
+        Route::get('/imports/{batch}', [ImportHistoryController::class, 'show'])->name('imports.show');
+        Route::get('/imports/{batch}/errors', [ImportHistoryController::class, 'errors'])->name('imports.errors');
     });
 
 Route::middleware('can:manage-priority-config')->prefix('admin/priority-models')->group(function () {

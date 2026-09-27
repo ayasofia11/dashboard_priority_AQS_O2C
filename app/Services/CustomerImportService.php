@@ -60,8 +60,6 @@ class CustomerImportService extends AbstractImportService
 {
     $normalized = strtoupper($label);
 
-    dump("Fichier: '{$label}' → normalisé: '{$normalized}'");
-
     $code = match (true) {
         str_contains($normalized, 'IMPORT') && str_contains($normalized, 'EXPORT') => 'IMPORT_EXPORT',
         str_contains($normalized, 'DISTRIBUTEUR')    => 'DISTRIBUTEUR',

@@ -102,8 +102,6 @@ class ProductImportService extends AbstractImportService
     {
         $normalized = strtoupper($label);
 
-        dump("Fichier: '{$label}' → normalisé: '{$normalized}'");
-
         $code = match (true) {
             str_contains($normalized, 'SEMI') => 'SEMI_FINI',
             str_contains($normalized, 'FINI') => 'FINI',
