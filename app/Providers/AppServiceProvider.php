@@ -22,5 +22,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-users',  fn (User $user) => $user->role->canManageUsers());
         Gate::define('import-orders', fn (User $user) => $user->role->canImport());
         Gate::define('export-orders', fn (User $user) => $user->role->canExport());
+        Gate::define('manage-priority-config', fn (User $user) => $user->role->canManageUsers());
     }
 }
