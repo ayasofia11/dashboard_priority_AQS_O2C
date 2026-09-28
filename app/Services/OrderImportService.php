@@ -29,12 +29,25 @@ class OrderImportService extends AbstractImportService
         'observation'   => 'Observation',
     ];
 
+    private \Illuminate\Support\Collection $customersCache;
+    private \Illuminate\Support\Collection $productsCache;
+
     public function __construct(private PriorityService $priorityService) {}
 
     public function import(UploadedFile $file, ?int $userId): ImportBatch
     {
         $rows = Excel::toArray(new RawArrayImport, $file)[0];
         $header = array_shift($rows);
+
+            // --- Préchargement : une seule requête pour tous les clients et produits du fichier ---
+    $customerCol = array_search(self::COLUMN_MAP['customer_name'], $header);
+    $productCol  = array_search(self::COLUMN_MAP['product_ref'], $header);
+
+    $customerNames = collect($rows)->pluck($customerCol)->map(fn ($v) => trim((string) $v))->filter()->unique();
+    $productRefs   = collect($rows)->pluck($productCol)->map(fn ($v) => trim((string) $v))->filter()->unique();
+
+    $this->customersCache = Customer::whereIn('name', $customerNames)->get()->keyBy('name');
+    $this->productsCache  = Product::whereIn('reference', $productRefs)->get()->keyBy('reference');
 
         $batch = ImportBatch::create([
             'source_type' => 'orders',
@@ -118,12 +131,12 @@ class OrderImportService extends AbstractImportService
         }
 
         // Client et produit doivent déjà exister (fichiers clients/produits importés avant).
-        $customer = Customer::where('name', $customerName)->first();
+        $customer = $this->customersCache->get($customerName);
         if (! $customer) {
             throw new \Exception("Client introuvable : '{$customerName}'. Importez d'abord le fichier clients.");
         }
 
-        $product = Product::where('reference', $productRef)->first();
+        $product = $this->productsCache->get($productRef);
         if (! $product) {
             throw new \Exception("Produit introuvable : '{$productRef}'. Importez d'abord le fichier produits.");
         }

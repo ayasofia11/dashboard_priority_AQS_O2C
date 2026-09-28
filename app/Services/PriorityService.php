@@ -3,23 +3,38 @@
 namespace App\Services;
 
 use App\Enums\PriorityLevel;
-use App\Models\{SalesOrder, PriorityModel, OrderPriorityEvaluation, Customer};
+use App\Models\{SalesOrder, PriorityModel, OrderPriorityEvaluation, Customer, Product, StockSnapshot, CustomerSoldeSnapshot};
 use Illuminate\Support\Collection;
 
 class PriorityService
 {
-     // Les 3 populations calculées une seule fois, réutilisées pour toutes les commandes.
+    // Les 3 populations calculées une seule fois, réutilisées pour toutes les commandes.
     private ?Collection $stockPop = null;
     private ?Collection $soldePop = null;
     private ?Collection $distancePop = null;
+
+    // Cache mémoire : évite de refaire une requête latestStock()/latestSolde()
+    // pour le même produit/client déjà consulté dans cet import.
+    private array $stockCache = [];
+    private array $soldeCache = [];
+
+    private function stockFor(Product $product): ?StockSnapshot
+    {
+        return $this->stockCache[$product->id] ??= $product->latestStock();
+    }
+
+    private function soldeFor(Customer $customer): ?CustomerSoldeSnapshot
+    {
+        return $this->soldeCache[$customer->id] ??= $customer->latestSolde();
+    }
 
     // Appelée UNE FOIS avant la boucle d'import, pas à chaque commande.
     public function preparePopulations(): void
     {
         $this->stockPop = SalesOrder::where('status', '!=', 'DELIVERED')->with('items.product')->get()
-            ->map(fn ($o) => $o->items->sum(fn ($i) => $i->product->latestStock()?->available_qty ?? 0));
+            ->map(fn ($o) => $o->items->sum(fn ($i) => $this->stockFor($i->product)?->available_qty ?? 0));
 
-        $this->soldePop = Customer::all()->map(fn ($c) => $c->latestSolde()?->outstanding_solde ?? 0);
+        $this->soldePop = Customer::all()->map(fn ($c) => $this->soldeFor($c)?->outstanding_solde ?? 0);
 
         $this->distancePop = Customer::whereHas('customerType', fn ($q) => $q->where('code', '!=', 'IMPORT_EXPORT'))
             ->get()->pluck('distance_km')->filter(fn ($d) => ! is_null($d));
@@ -27,8 +42,7 @@ class PriorityService
 
     public function evaluate(SalesOrder $order): ?OrderPriorityEvaluation
     {
-
-        if ($order->status === 'DELIVERED') {return null;}
+        if ($order->status === 'DELIVERED') { return null; }
 
         if (is_null($this->stockPop)) $this->preparePopulations();
 
@@ -74,12 +88,12 @@ class PriorityService
     private function isDataMissing(SalesOrder $order): bool
     {
         foreach ($order->items as $item) {
-            if ($item->remaining_quantity > 0 && is_null($item->product->latestStock())) {
+            if ($item->remaining_quantity > 0 && is_null($this->stockFor($item->product))) {
                 return true;
             }
         }
 
-        return is_null($order->customer->latestSolde());
+        return is_null($this->soldeFor($order->customer));
     }
 
     // --- Blocage : stock insuffisant sur au moins une ligne ---
@@ -88,7 +102,7 @@ class PriorityService
         foreach ($order->items as $item) {
             if ($item->remaining_quantity <= 0) continue;
 
-            $available = $item->product->latestStock()?->available_qty ?? 0;
+            $available = $this->stockFor($item->product)?->available_qty ?? 0;
             if ($available < $item->remaining_quantity) return true;
         }
 
@@ -99,7 +113,7 @@ class PriorityService
     private function isSoldeInsufficient(SalesOrder $order): bool
     {
         $montantRestantTTC = $order->items->sum(fn ($item) => $item->total_amount);
-        $solde = $order->customer->latestSolde()?->outstanding_solde ?? 0;
+        $solde = $this->soldeFor($order->customer)?->outstanding_solde ?? 0;
 
         return $solde < $montantRestantTTC;
     }
@@ -107,7 +121,7 @@ class PriorityService
     // --- Facteur 1 : stock disponible, brut, comparé aux autres commandes (30%) ---
     private function scoreStockLevel(SalesOrder $order, $factor): array
     {
-        $raw = $order->items->sum(fn ($item) => $item->product->latestStock()?->available_qty ?? 0);
+        $raw = $order->items->sum(fn ($item) => $this->stockFor($item->product)?->available_qty ?? 0);
         $score = $this->minMaxNormalize($raw, $this->stockPop->min(), $this->stockPop->max());
 
         return $this->result('stock_level', $raw, $score, $factor->weight,
@@ -128,7 +142,7 @@ class PriorityService
     // --- Facteur 3 : solde client, brut, comparé aux autres clients (20%) ---
     private function scoreCustomerSolde(Customer $customer, $factor): array
     {
-        $raw = $customer->latestSolde()?->outstanding_solde ?? 0;
+        $raw = $this->soldeFor($customer)?->outstanding_solde ?? 0;
         $score = $this->minMaxNormalize($raw, $this->soldePop->min(), $this->soldePop->max());
 
         return $this->result('customer_solde', $raw, $score, $factor->weight,
@@ -167,24 +181,6 @@ class PriorityService
 
         return $this->result('product_type', $avg, $avg, $factor->weight,
             sprintf('Score moyen des types de produits : %.0f.', $avg));
-    }
-
-    // --- Populations de référence pour les normalisations relatives ---
-    private function stockPopulation(): Collection
-    {
-        return SalesOrder::where('status', '!=', 'DELIVERED')->with('items.product')->get()
-            ->map(fn ($o) => $o->items->sum(fn ($i) => $i->product->latestStock()?->available_qty ?? 0));
-    }
-
-    private function soldePopulation(): Collection
-    {
-        return Customer::all()->map(fn ($c) => $c->latestSolde()?->outstanding_solde ?? 0);
-    }
-
-    private function distancePopulation(): Collection
-    {
-        return Customer::whereHas('customerType', fn ($q) => $q->where('code', '!=', 'IMPORT_EXPORT'))
-            ->get()->pluck('distance_km')->filter(fn ($d) => ! is_null($d));
     }
 
     private function minMaxNormalize(float $raw, float $min, float $max): float

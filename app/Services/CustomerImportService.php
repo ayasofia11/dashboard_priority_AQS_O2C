@@ -20,6 +20,8 @@ class CustomerImportService extends AbstractImportService
         'solde'         => 'Solde Client',
     ];
 
+    private ?\Illuminate\Support\Collection $typesCache = null;
+
     public function import(UploadedFile $file, ?int $userId): ImportBatch
     {
         $rows = Excel::toArray(new RawArrayImport, $file)[0];
@@ -56,7 +58,7 @@ class CustomerImportService extends AbstractImportService
     }
 
 
-    private function resolveCustomerType(string $label): CustomerType
+ /*   private function resolveCustomerType(string $label): CustomerType
 {
     $normalized = strtoupper($label);
 
@@ -73,6 +75,28 @@ class CustomerImportService extends AbstractImportService
     }
 
     return CustomerType::where('code', $code)->firstOrFail();
+}*/
+
+private function resolveCustomerType(string $label): CustomerType
+{
+    // Chargé une seule fois, à la première ligne, réutilisé pour toutes les suivantes.
+    $this->typesCache ??= CustomerType::all()->keyBy('code');
+
+    $normalized = strtoupper($label);
+
+    $code = match (true) {
+        str_contains($normalized, 'IMPORT') && str_contains($normalized, 'EXPORT') => 'IMPORT_EXPORT',
+        str_contains($normalized, 'DISTRIBUTEUR')    => 'DISTRIBUTEUR',
+        str_contains($normalized, 'TRANSFORMATEUR')  => 'TRANSFORMATEUR',
+        str_contains($normalized, 'UTILISATEUR')     => 'UTILISATEUR',
+        default => null,
+    };
+
+    if (is_null($code) || ! $this->typesCache->has($code)) {
+        throw new \Exception("Type client non reconnu : '{$label}'.");
+    }
+
+    return $this->typesCache->get($code);
 }
 
 

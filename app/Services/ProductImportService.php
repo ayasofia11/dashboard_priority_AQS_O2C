@@ -20,6 +20,8 @@ class ProductImportService extends AbstractImportService
         'available_qty' => 'Qte disponible',
     ];
 
+    private ?\Illuminate\Support\Collection $typesCache = null;
+
     public function import(UploadedFile $file, ?int $userId): ImportBatch
     {
         $rows = Excel::toArray(new RawArrayImport, $file)[0];
@@ -104,7 +106,7 @@ class ProductImportService extends AbstractImportService
 
     // Le "SEMI" doit être vérifié AVANT "FINI", sinon "Semi fini" matcherait aussi "FINI"
     // à cause de str_contains, ce qui donnerait le mauvais type.
-    private function resolveProductType(string $label): ProductType
+    /*private function resolveProductType(string $label): ProductType
     {
         $normalized = strtoupper($label);
 
@@ -124,5 +126,24 @@ class ProductImportService extends AbstractImportService
     private function col(array $data, string $key): mixed
     {
         return $data[self::COLUMN_MAP[$key]] ?? null;
+    }*/
+
+    private function resolveProductType(string $label): ProductType
+{
+    $this->typesCache ??= ProductType::all()->keyBy('code');
+
+    $normalized = strtoupper($label);
+
+    $code = match (true) {
+        str_contains($normalized, 'SEMI') => 'SEMI_FINI',
+        str_contains($normalized, 'FINI') => 'FINI',
+        default => null,
+    };
+
+    if (is_null($code) || ! $this->typesCache->has($code)) {
+        throw new \Exception("Type produit non reconnu : '{$label}'.");
     }
+
+    return $this->typesCache->get($code);
+}
 }

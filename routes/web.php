@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\ExportController;
@@ -58,8 +59,14 @@ Route::middleware('can:manage-priority-config')->prefix('admin/priority-models')
         ->middleware('can:export-orders')
         ->name('orders.export');
 
-    // Gestion des utilisateurs : Admin seulement (provisoire, à remplacer par UserController).
-    Route::get('/admin/users', fn () => 'Gestion des utilisateurs (à venir)')
-        ->middleware('can:manage-users')
-        ->name('admin.users.index');
+    // Gestion des utilisateurs : Admin seulement.
+    Route::middleware('can:manage-users')->prefix('admin/users')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('admin.users.index');
+        Route::post('/', [UserController::class, 'store'])->name('admin.users.store');
+        Route::get('/{user}', [UserController::class, 'show'])->name('admin.users.show');
+        Route::patch('/{user}', [UserController::class, 'update'])->name('admin.users.update');
+        Route::post('/{user}/activate', [UserController::class, 'activate'])->name('admin.users.activate');
+        Route::post('/{user}/deactivate', [UserController::class, 'deactivate'])->name('admin.users.deactivate');
+        Route::post('/{user}/reset-password', [UserController::class, 'resetPassword'])->name('admin.users.reset-password');
+    });
 });

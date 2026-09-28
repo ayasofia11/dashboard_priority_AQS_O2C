@@ -9,16 +9,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Models\User;
 use Tests\TestCase;
 
 class ProductImportServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    private int $userId;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->seed(ProductTypeSeeder::class);
+        $this->userId = User::factory()->create()->id;
     }
 
     // Construit un petit fichier .xlsx en mémoire avec les en-têtes attendues par
@@ -42,7 +46,7 @@ class ProductImportServiceTest extends TestCase
 
     public function test_first_import_creates_one_stock_snapshot(): void
     {
-        app(ProductImportService::class)->import($this->makeProductFile(500), 1);
+        app(ProductImportService::class)->import($this->makeProductFile(500), $this->userId);
 
         $product = Product::where('reference', 'TEST-P001')->first();
 
@@ -54,8 +58,8 @@ class ProductImportServiceTest extends TestCase
     // Le vrai test du correctif : réimporter avec la MÊME quantité ne doit rien ajouter.
     public function test_reimport_with_same_quantity_does_not_duplicate_snapshot(): void
     {
-        app(ProductImportService::class)->import($this->makeProductFile(500), 1);
-        app(ProductImportService::class)->import($this->makeProductFile(500), 1);
+        app(ProductImportService::class)->import($this->makeProductFile(500), $this->userId);
+        app(ProductImportService::class)->import($this->makeProductFile(500), $this->userId);
 
         $product = Product::where('reference', 'TEST-P001')->first();
 
@@ -65,8 +69,8 @@ class ProductImportServiceTest extends TestCase
     // Réimporter avec une quantité DIFFÉRENTE doit créer un nouveau snapshot (historique préservé).
     public function test_reimport_with_different_quantity_creates_new_snapshot(): void
     {
-        app(ProductImportService::class)->import($this->makeProductFile(500), 1);
-        app(ProductImportService::class)->import($this->makeProductFile(320), 1);
+        app(ProductImportService::class)->import($this->makeProductFile(500), $this->userId);
+        app(ProductImportService::class)->import($this->makeProductFile(320), $this->userId);
 
         $product = Product::where('reference', 'TEST-P001')->first();
 
@@ -77,9 +81,9 @@ class ProductImportServiceTest extends TestCase
     // Trois imports identiques d'affilée : toujours 1 seul snapshot, pas 3.
     public function test_three_identical_imports_still_produce_one_snapshot(): void
     {
-        app(ProductImportService::class)->import($this->makeProductFile(500), 1);
-        app(ProductImportService::class)->import($this->makeProductFile(500), 1);
-        app(ProductImportService::class)->import($this->makeProductFile(500), 1);
+        app(ProductImportService::class)->import($this->makeProductFile(500), $this->userId);
+        app(ProductImportService::class)->import($this->makeProductFile(500), $this->userId);
+        app(ProductImportService::class)->import($this->makeProductFile(500), $this->userId);
 
         $product = Product::where('reference', 'TEST-P001')->first();
 

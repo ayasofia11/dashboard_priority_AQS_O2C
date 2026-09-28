@@ -22,7 +22,6 @@ class SalesOrder extends Model
         return $this->hasOne(OrderPriorityEvaluation::class, 'sales_order_id')->latestOfMany('evaluated_at');
     }
 
-
     public function lastImportBatch()
     {
         return $this->belongsTo(ImportBatch::class, 'last_import_batch_id');
