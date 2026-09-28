@@ -17,6 +17,7 @@ class DashboardController extends Controller
                 $join->on('latest_eval.sales_order_id', '=', 'sales_orders.id')
                      ->whereRaw('latest_eval.id = (SELECT MAX(id) FROM order_priority_evaluations WHERE sales_order_id = sales_orders.id)');
             })
+            ->where('sales_orders.status', '!=', 'DELIVERED')
             ->select('latest_eval.priority_level', DB::raw('count(*) as total'))
             ->groupBy('latest_eval.priority_level')
             ->pluck('total', 'priority_level');
@@ -29,6 +30,7 @@ class DashboardController extends Controller
                 $join->on('latest_eval.sales_order_id', '=', 'sales_orders.id')
                      ->whereRaw('latest_eval.id = (SELECT MAX(id) FROM order_priority_evaluations WHERE sales_order_id = sales_orders.id)');
             })
+            ->where('sales_orders.status', '!=', 'DELIVERED')
             ->where('latest_eval.priority_level', 'bloquee')
             ->with('items')
             ->get()
@@ -55,6 +57,7 @@ class DashboardController extends Controller
         $join->on('latest_eval.sales_order_id', '=', 'sales_orders.id')
              ->whereRaw('latest_eval.id = (SELECT MAX(id) FROM order_priority_evaluations WHERE sales_order_id = sales_orders.id)');
             })
+            ->where('sales_orders.status', '!=', 'DELIVERED') 
             ->where('latest_eval.priority_level', 'bloquee')
             ->where('latest_eval.reason', 'like', '%Stock%')
             ->count();

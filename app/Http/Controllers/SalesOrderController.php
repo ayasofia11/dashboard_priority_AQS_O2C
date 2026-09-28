@@ -21,6 +21,7 @@ class SalesOrderController extends Controller
                      ->whereRaw('latest_eval.id = (SELECT MAX(id) FROM order_priority_evaluations WHERE sales_order_id = sales_orders.id)');
             })
             ->select('sales_orders.*', 'latest_eval.priority_level', 'latest_eval.final_score', 'latest_eval.reason', 'latest_eval.id as evaluation_id')
+            ->where('sales_orders.status', '!=', 'DELIVERED') 
             ->with('customer', 'lastImportBatch', 'items.product')
 
             // --- Recherche et filtres, appliqués seulement si présents dans l'URL ---

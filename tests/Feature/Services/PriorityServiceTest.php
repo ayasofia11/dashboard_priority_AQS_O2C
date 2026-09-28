@@ -182,6 +182,28 @@ class PriorityServiceTest extends TestCase
         $this->assertGreaterThan($scoreLow, $scoreHigh);
     }
 
+    public function test_delivered_order_does_not_pollute_stock_population(): void
+{
+    // Une commande livrée avec un stock énorme...
+    $delivered = $this->makeOrder(['status' => 'OPEN', 'stock' => 5000, 'ordered' => 10, 'delivered' => 10]);
+    $delivered->items()->update(['status' => 'DELIVERED']);
+    $delivered->recalculateStatus(); // -> DELIVERED, avant l'appel à evaluate()
+
+    // ... deux commandes ouvertes normales, pour avoir un vrai écart à comparer
+    $low  = $this->makeOrder(['stock' => 100, 'ordered' => 10]);
+    $high = $this->makeOrder(['stock' => 500, 'ordered' => 10]);
+
+    $service = app(\App\Services\PriorityService::class);
+    $service->preparePopulations();
+
+    $evalHigh = $service->evaluate($high);
+    $scoreHigh = $evalHigh->factorScores()->where('factor_code', 'stock_level')->first();
+
+    // Sans le correctif, le max serait 5000 (la commande livrée) et $high obtiendrait
+    // un score écrasé (~9/100). Avec le correctif, le max est 500 (high lui-même) -> 100.
+    $this->assertEquals(100, $scoreHigh->normalized_score);
+}
+
     // --- Facteur : avancement de livraison ---
 
     public function test_more_delivered_scores_higher_on_progress(): void

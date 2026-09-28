@@ -106,11 +106,21 @@ class CustomerImportService extends AbstractImportService
     );
 
     if (! is_null($solde)) {
-        CustomerSoldeSnapshot::create([
-            'customer_id' => $customer->id,
-            'outstanding_solde' => $solde,
-            'snapshot_at' => now(),
-        ]);
+        $latest = $customer->latestSolde();
+
+        // On compare en arrondissant à 2 décimales (la précision de la colonne),
+        // pour éviter qu'un écart d'arrondi flottant (ex. 1200000.00 vs 1200000.001)
+        // déclenche une création inutile.
+        $hasChanged = is_null($latest)
+            || round((float) $latest->outstanding_solde, 2) !== round((float) $solde, 2);
+
+        if ($hasChanged) {
+            CustomerSoldeSnapshot::create([
+                'customer_id' => $customer->id,
+                'outstanding_solde' => $solde,
+                'snapshot_at' => now(),
+            ]);
+        }
     }
 }
 

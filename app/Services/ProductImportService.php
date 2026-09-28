@@ -89,11 +89,17 @@ class ProductImportService extends AbstractImportService
             ]
         );
 
-        StockSnapshot::create([
-            'product_id' => $product->id,
-            'available_qty' => $availableQty,
-            'snapshot_at' => now(),
-        ]);
+        $latest = $product->latestStock();
+        $hasChanged = is_null($latest)
+            || round((float) $latest->available_qty, 3) !== round((float) $availableQty, 3);
+
+        if ($hasChanged) {
+            StockSnapshot::create([
+                'product_id' => $product->id,
+                'available_qty' => $availableQty,
+                'snapshot_at' => now(),
+            ]);
+        }
     }
 
     // Le "SEMI" doit être vérifié AVANT "FINI", sinon "Semi fini" matcherait aussi "FINI"

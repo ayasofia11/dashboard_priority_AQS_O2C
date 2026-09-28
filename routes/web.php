@@ -24,11 +24,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     // Dashboard : tous les rôles connectés.
+    Route::get('/dashboard', fn () => redirect()->route('dashboard.stats'))->name('dashboard');
     Route::get('/dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
 
     // Liste et détail des commandes : tous les rôles connectés (matrice : "Voir dashboard/liste" = tous).
     Route::get('/orders', [SalesOrderController::class, 'index'])->name('orders.index');
-    Route::get('/orders/{order}', [SalesOrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{order}', [SalesOrderController::class, 'show'])->name('orders.show')->whereNumber('order');
 
     // Import et décision du planificateur : Admin + Planificateur.
     Route::middleware('can:import-orders')->group(function () {

@@ -21,6 +21,7 @@ class OrdersExport implements FromQuery, WithHeadings, WithMapping
                      ->whereRaw('latest_eval.id = (SELECT MAX(id) FROM order_priority_evaluations WHERE sales_order_id = sales_orders.id)');
             })
             ->select('sales_orders.*', 'latest_eval.priority_level', 'latest_eval.final_score', 'latest_eval.reason')
+            ->where('sales_orders.status', '!=', 'DELIVERED')
             ->with('customer', 'items.product')
 
             ->when(!empty($this->filters['order_number']), fn ($q) =>
@@ -38,7 +39,15 @@ class OrdersExport implements FromQuery, WithHeadings, WithMapping
             ->when(!empty($this->filters['date_to']), fn ($q) =>
                 $q->whereDate('sales_orders.order_date', '<=', $this->filters['date_to']))
 
-            ->orderByRaw("FIELD(latest_eval.priority_level, 'bloquee', 'critique', 'urgente', 'prioritaire', 'normale')");
+            ->when(!empty($this->filters['import_batch_id']), fn ($q) =>
+                $q->where('sales_orders.last_import_batch_id', $this->filters['import_batch_id']))
+
+            ->when(filter_var($this->filters['stock_alert'] ?? false, FILTER_VALIDATE_BOOLEAN), fn ($q) =>
+                $q->where('latest_eval.priority_level', 'bloquee')
+                  ->where('latest_eval.reason', 'like', '%Stock%'))
+
+            ->orderByRaw("FIELD(latest_eval.priority_level, 'bloquee', 'critique', 'urgente', 'prioritaire', 'normale')")
+            ->orderByDesc('sales_orders.order_date');
     }
 
     public function headings(): array

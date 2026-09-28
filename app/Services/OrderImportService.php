@@ -65,12 +65,17 @@ class OrderImportService extends AbstractImportService
         }
 
         // Statut et priorité recalculés une fois par commande touchée, pas par ligne.
+        $touchedOrderIds = array_unique($touchedOrderIds);
+
+        foreach ($touchedOrderIds as $orderId) {
+            SalesOrder::find($orderId)->recalculateStatus();
+        }
+
         $this->priorityService->preparePopulations();
 
-        foreach (array_unique($touchedOrderIds) as $orderId) {
-            $order = SalesOrder::find($orderId);
-            $order->recalculateStatus();
-            $this->priorityService->evaluate($order->fresh(['items.product.productType', 'customer.customerType']));
+        foreach ($touchedOrderIds as $orderId) {
+            $order = SalesOrder::find($orderId)->fresh(['items.product.productType', 'customer.customerType']);
+            $this->priorityService->evaluate($order);
         }
 
         $batch->update(['status' => ImportStatus::Completed, 'imported_at' => now()]);
