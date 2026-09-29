@@ -8,6 +8,11 @@ use Illuminate\Http\RedirectResponse;
 
 class ImportController extends Controller
 {
+    public function create()
+    {
+        return view('imports.create');
+    }
+    
     public function customers(ImportFileRequest $request, CustomerImportService $service): RedirectResponse
     {
         $batch = $service->import($request->file('file'), auth()->id());

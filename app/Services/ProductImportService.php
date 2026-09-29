@@ -121,12 +121,12 @@ class ProductImportService extends AbstractImportService
         }
 
         return ProductType::where('code', $code)->firstOrFail();
-    }
+    }*/
 
     private function col(array $data, string $key): mixed
     {
         return $data[self::COLUMN_MAP[$key]] ?? null;
-    }*/
+    }
 
     private function resolveProductType(string $label): ProductType
 {

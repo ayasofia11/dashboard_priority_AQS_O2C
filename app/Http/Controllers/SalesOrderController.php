@@ -21,7 +21,7 @@ class SalesOrderController extends Controller
                      ->whereRaw('latest_eval.id = (SELECT MAX(id) FROM order_priority_evaluations WHERE sales_order_id = sales_orders.id)');
             })
             ->select('sales_orders.*', 'latest_eval.priority_level', 'latest_eval.final_score', 'latest_eval.reason', 'latest_eval.id as evaluation_id')
-            ->where('sales_orders.status', '!=', 'DELIVERED') 
+            ->where('sales_orders.status', '!=', 'DELIVERED')
             ->with('customer', 'lastImportBatch', 'items.product')
 
             // --- Recherche et filtres, appliqués seulement si présents dans l'URL ---
@@ -57,7 +57,7 @@ class SalesOrderController extends Controller
 
             // --- Tri : ordre métier de priorité, pas alphabétique ---
             ->orderByRaw("FIELD(latest_eval.priority_level, 'bloquee', 'critique', 'urgente', 'prioritaire', 'normale')")
-            ->orderByDesc('sales_orders.order_date')
+            ->orderByDesc('latest_eval.final_score')
 
             ->paginate(20)
             ->withQueryString();
@@ -71,7 +71,7 @@ class SalesOrderController extends Controller
             return $order;
         });
 
-        return response()->json($orders);
+        return view('orders.index', compact('orders'));
     }
 
     /**

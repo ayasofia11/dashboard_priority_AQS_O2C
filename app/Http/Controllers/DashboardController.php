@@ -57,13 +57,13 @@ class DashboardController extends Controller
         $join->on('latest_eval.sales_order_id', '=', 'sales_orders.id')
              ->whereRaw('latest_eval.id = (SELECT MAX(id) FROM order_priority_evaluations WHERE sales_order_id = sales_orders.id)');
             })
-            ->where('sales_orders.status', '!=', 'DELIVERED') 
+            ->where('sales_orders.status', '!=', 'DELIVERED')
             ->where('latest_eval.priority_level', 'bloquee')
             ->where('latest_eval.reason', 'like', '%Stock%')
             ->count();
 
 
-        return response()->json([
+        return view('dashboard',[
             'by_priority_level' => $byLevel,
             'total_evaluated' => $byLevel->sum(),
             'blocked_amount_ttc' => round($blockedAmount, 2),

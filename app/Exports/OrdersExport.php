@@ -47,7 +47,7 @@ class OrdersExport implements FromQuery, WithHeadings, WithMapping
                   ->where('latest_eval.reason', 'like', '%Stock%'))
 
             ->orderByRaw("FIELD(latest_eval.priority_level, 'bloquee', 'critique', 'urgente', 'prioritaire', 'normale')")
-            ->orderByDesc('sales_orders.order_date');
+            ->orderByDesc('latest_eval.final_score');
     }
 
     public function headings(): array

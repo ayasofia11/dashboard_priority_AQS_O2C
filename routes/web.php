@@ -9,6 +9,8 @@ use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\PriorityDecisionController;
 use App\Http\Controllers\PriorityConfigController;
 use App\Http\Controllers\ImportHistoryController;
+use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
+use Laravel\Fortify\Http\Controllers\NewPasswordController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -17,6 +19,12 @@ Route::redirect('/', '/dashboard');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
+
+    // Routes de reset : le contrôleur vient de Fortify, la vue reste la tienne (Bootstrap)
+    Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
 });
 
 // Réservé aux utilisateurs connectés.
@@ -34,8 +42,7 @@ Route::middleware('auth')->group(function () {
 
     // Import et décision du planificateur : Admin + Planificateur.
     Route::middleware('can:import-orders')->group(function () {
-        Route::get('/imports/create', fn () => 'Formulaire d’import (à venir)')->name('imports.create');
-        Route::post('/imports/customers', [ImportController::class, 'customers'])->name('imports.customers');
+        Route::get('/imports/create', [ImportController::class, 'create'])->name('imports.create');        Route::post('/imports/customers', [ImportController::class, 'customers'])->name('imports.customers');
         Route::post('/imports/products', [ImportController::class, 'products'])->name('imports.products');
         Route::post('/imports/orders', [ImportController::class, 'orders'])->name('imports.orders');
         Route::post('/evaluations/{evaluation}/decision', [PriorityDecisionController::class, 'store'])->name('evaluations.decision');
