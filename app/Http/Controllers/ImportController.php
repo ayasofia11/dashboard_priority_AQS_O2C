@@ -12,7 +12,7 @@ class ImportController extends Controller
     {
         return view('imports.create');
     }
-    
+
     public function customers(ImportFileRequest $request, CustomerImportService $service): RedirectResponse
     {
         $batch = $service->import($request->file('file'), auth()->id());
@@ -29,6 +29,8 @@ class ImportController extends Controller
 
     public function orders(ImportFileRequest $request, OrderImportService $service): RedirectResponse
     {
+        set_time_limit(120);
+
         $batch = $service->import($request->file('file'), auth()->id());
 
         return back()->with('status', "Import commandes terminé : {$batch->success_rows} réussies, {$batch->error_rows} échouées.");

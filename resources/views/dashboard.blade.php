@@ -84,7 +84,9 @@
     <div class="card">
         <div class="card-body">
             <h2 class="h6 mb-3">Répartition des commandes par priorité</h2>
-            <canvas id="priorityChart" height="90"></canvas>
+            <div style="max-width: 400px; margin: 0 auto;">
+            <canvas id="priorityChart" height="250"></canvas>
+        </div>
         </div>
     </div>
 

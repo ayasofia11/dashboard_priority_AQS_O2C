@@ -1,4 +1,7 @@
 <x-layouts.guest title="Mot de passe oublié">
+    <div class="text-center mb-4">
+        <img src="{{ asset('images/aqs-logo.jpg') }}" alt="Algerian Qatari Steel" style="max-width: 150px;">
+    </div>
     <p class="text-muted small mb-3">Indiquez votre e-mail, un lien de réinitialisation vous sera envoyé.</p>
 
     @if (session('status'))
